@@ -22,6 +22,9 @@ type alias Key =
 
 Mostly useful for deserialization.
 
+In case you want to create these by hand, note the integers in the list must be
+in the 0-255 range, and the first integer in the tuple must be greater than 0.
+
 -}
 fromList : ( Int, List Int ) -> Key
 fromList key =

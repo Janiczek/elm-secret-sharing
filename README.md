@@ -13,6 +13,7 @@ secret =
 allKeys : Result Secret.EncryptError (List Key)
 allKeys =
     Secret.encryptString
+        -- Don't use a static seed in production!
         { seed = Random.initialSeed 0
         , parts = 5
         , minPartsNeeded = 3
@@ -35,7 +36,7 @@ decryptedSecret =
 ## Advanced usage:
 
 It's possible to have a tiered sharing: let's say you want to have admin keys and
-user keys; allowing either two admin keys or one admin key and three users to
+user keys; allowing either two admin keys or one admin key and three user keys to
 recover the secret.
 
 For more info check [this link](https://github.com/simbo1905/shamir#tiered-sharing-java).

@@ -180,32 +180,17 @@ suite =
                         secret : String
                         secret =
                             "Hello there!"
-
-                        allKeys : Result Secret.EncryptError (List Key)
-                        allKeys =
-                            Secret.encryptString
-                                { seed = Random.initialSeed 0
-                                , parts = 5
-                                , minPartsNeeded = 3
-                                }
-                                secret
                     in
-                    case allKeys of
-                        Err _ ->
-                            Expect.ok allKeys
-
-                        Ok keys ->
-                            let
-                                onlySomeKeys : List Key
-                                onlySomeKeys =
-                                    List.drop 2 keys
-
-                                decryptedSecret : Result Secret.DecryptError String
-                                decryptedSecret =
-                                    Secret.decryptString onlySomeKeys
-                            in
-                            decryptedSecret
-                                |> Expect.equal (Ok secret)
+                    secret
+                        |> Secret.encryptString
+                            { seed = Random.initialSeed 0
+                            , parts = 5
+                            , minPartsNeeded = 3
+                            }
+                        |> Result.withDefault []
+                        |> List.drop 2
+                        |> Secret.decryptString
+                        |> Expect.equal (Ok secret)
             , Test.test "Usage example (bytes)" <|
                 \() ->
                     let
@@ -213,67 +198,63 @@ suite =
                         secret =
                             [ 0, 10, 20, 30, 40, 50, 100, 200 ]
                                 |> Bytes.fromByteValues
-
-                        allKeys : Result Secret.EncryptError (List Key)
-                        allKeys =
-                            Secret.encryptBytes
-                                { seed = Random.initialSeed 0
-                                , parts = 5
-                                , minPartsNeeded = 3
-                                }
-                                secret
                     in
-                    case allKeys of
-                        Err _ ->
-                            Expect.ok allKeys
-
-                        Ok keys ->
-                            let
-                                onlySomeKeys : List Key
-                                onlySomeKeys =
-                                    List.drop 2 keys
-
-                                decryptedSecret : Result Secret.DecryptError Bytes
-                                decryptedSecret =
-                                    Secret.decryptBytes onlySomeKeys
-                            in
-                            decryptedSecret
-                                |> expectBytes_ (Ok secret)
+                    secret
+                        |> Secret.encryptBytes
+                            { seed = Random.initialSeed 0
+                            , parts = 5
+                            , minPartsNeeded = 3
+                            }
+                        |> Result.withDefault []
+                        |> List.drop 2
+                        |> Secret.decryptBytes
+                        |> expectBytes_ (Ok secret)
             , Test.fuzz Fuzz.string "Any string can be encrypted and decrypted" stringRoundtrip
             , Test.fuzz nonemptyBytes "Any nonempty bytes can be encrypted and decrypted" bytesRoundtrip
+            , Test.fuzz (Fuzz.intRange 0 Random.maxInt) "Works with any seed" <|
+                \seedInt ->
+                    let
+                        secret : String
+                        secret =
+                            "Hello world!"
+                    in
+                    secret
+                        |> Secret.encryptString
+                            { seed = Random.initialSeed seedInt
+                            , parts = 5
+                            , minPartsNeeded = 3
+                            }
+                        |> Result.withDefault []
+                        |> Secret.decryptString
+                        |> Expect.equal (Ok secret)
             , Test.fuzz2 partsAndMin nonemptyBytes "Any number of keys >= minPartsNeeded decrypts" <|
                 \{ parts, minPartsNeeded } secret ->
                     let
-                        allKeys : Result Secret.EncryptError (List Key)
+                        allKeys : List Key
                         allKeys =
-                            Secret.encryptBytes
-                                { seed = Random.initialSeed 0
-                                , parts = parts
-                                , minPartsNeeded = minPartsNeeded
-                                }
-                                secret
-                    in
-                    case allKeys of
-                        Err _ ->
-                            Expect.ok allKeys
-
-                        Ok keys ->
-                            let
-                                allKeysCombinations : List (List Key)
-                                allKeysCombinations =
-                                    keys
-                                        |> List.subsequences
-                                        |> List.filter (\seq -> List.length seq >= minPartsNeeded)
-                            in
                             secret
-                                |> Expect.all
-                                    (allKeysCombinations
-                                        |> List.map
-                                            (\keysCombination _ ->
-                                                Secret.decryptBytes keysCombination
-                                                    |> expectBytes_ (Ok secret)
-                                            )
+                                |> Secret.encryptBytes
+                                    { seed = Random.initialSeed 0
+                                    , parts = parts
+                                    , minPartsNeeded = minPartsNeeded
+                                    }
+                                |> Result.withDefault []
+
+                        allKeysCombinations : List (List Key)
+                        allKeysCombinations =
+                            allKeys
+                                |> List.subsequences
+                                |> List.filter (\seq -> List.length seq >= minPartsNeeded)
+                    in
+                    secret
+                        |> Expect.all
+                            (allKeysCombinations
+                                |> List.map
+                                    (\keysCombination _ ->
+                                        Secret.decryptBytes keysCombination
+                                            |> expectBytes_ (Ok secret)
                                     )
+                            )
             , Test.fuzz (Fuzz.intRange 0 1) "At least 2 parts must be required to decrypt" <|
                 \minPartsNeeded ->
                     Secret.encryptString
@@ -320,51 +301,25 @@ suite =
 
 bytesRoundtrip : Bytes -> Expectation
 bytesRoundtrip secret =
-    let
-        allKeys : Result Secret.EncryptError (List Key)
-        allKeys =
-            Secret.encryptBytes
-                { seed = Random.initialSeed 0
-                , parts = 5
-                , minPartsNeeded = 3
-                }
-                secret
-    in
-    case allKeys of
-        Err _ ->
-            Expect.ok allKeys
-
-        Ok keys ->
-            let
-                decryptedSecret : Result Secret.DecryptError Bytes
-                decryptedSecret =
-                    Secret.decryptBytes keys
-            in
-            decryptedSecret
-                |> expectBytes_ (Ok secret)
+    secret
+        |> Secret.encryptBytes
+            { seed = Random.initialSeed 0
+            , parts = 5
+            , minPartsNeeded = 3
+            }
+        |> Result.withDefault []
+        |> Secret.decryptBytes
+        |> expectBytes_ (Ok secret)
 
 
 stringRoundtrip : String -> Expectation
 stringRoundtrip secret =
-    let
-        allKeys : Result Secret.EncryptError (List Key)
-        allKeys =
-            Secret.encryptString
-                { seed = Random.initialSeed 0
-                , parts = 5
-                , minPartsNeeded = 3
-                }
-                secret
-    in
-    case allKeys of
-        Err _ ->
-            Expect.ok allKeys
-
-        Ok keys ->
-            let
-                decryptedSecret : Result Secret.DecryptError String
-                decryptedSecret =
-                    Secret.decryptString keys
-            in
-            decryptedSecret
-                |> Expect.equal (Ok secret)
+    secret
+        |> Secret.encryptString
+            { seed = Random.initialSeed 0
+            , parts = 5
+            , minPartsNeeded = 3
+            }
+        |> Result.withDefault []
+        |> Secret.decryptString
+        |> Expect.equal (Ok secret)
