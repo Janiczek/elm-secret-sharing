@@ -3,10 +3,29 @@ module Secret exposing
     , decryptBytes, decryptString, DecryptError(..)
     )
 
-{-| An implementation of Shamir's Secret Sharing: your secret is encrypted into
-N keys, of which only K are needed to reconstruct the original secret.
+{-| An implementation of [Shamir's Secret Sharing](https://en.wikipedia.org/wiki/Shamir's_Secret_Sharing):
+your secret is encrypted into `N` keys, of which only `K` are needed to
+reconstruct the original secret.
+
+Port of [`simbo1905/shamir`](https://github.com/simbo1905/shamir).
+
+
+## Advanced usage:
+
+It's possible to have a tiered sharing: let's say you want to have admin keys and
+user keys; allowing either two admin keys or one admin key and three users to
+recover the secret.
+
+For more info check [this link](https://github.com/simbo1905/shamir#tiered-sharing-java).
+
+
+# Encrypt
 
 @docs encryptBytes, encryptString, EncryptError
+
+
+# Decrypt
+
 @docs decryptBytes, decryptString, DecryptError
 
 -}
@@ -40,6 +59,14 @@ secretPolynomial { degree, pointToHide } =
 -- ENCRYPT
 
 
+{-| These validation rules are in effect:
+
+  - 2-255 parts must be generated
+  - 2+ parts must be needed
+  - there cannot be more parts needed than available
+  - secret must be non-empty Bytes (Strings can be empty)
+
+-}
 type EncryptError
     = TooFewPartsNeeded
     | TooManyParts
@@ -47,6 +74,8 @@ type EncryptError
     | NoSecret
 
 
+{-| Allows splitting the Bytes secret to a given number of keys.
+-}
 encryptBytes :
     { seed : Random.Seed
     , parts : Int
@@ -98,10 +127,11 @@ encryptBytes c secret =
             |> Ok
 
 
-{-| Encrypts the string.
+{-| Allows splitting the String secret to a given number of keys.
 
 Compared to `encryptBytes`, adds one extra 32bit integer at the beginning, saying
-how many UTF-8 bytes the string has (for easier decoding).
+how many UTF-8 bytes the string has. This is required for correct reconstruction
+later with `decryptString`.
 
 -}
 encryptString :
@@ -127,12 +157,21 @@ sizedStringEncoder str =
 -- DECRYPT
 
 
+{-| The library will fail decrypting if:
+
+  - the keys list is empty
+  - keys are not of the same length
+  - the secret wasn't an UTF-8 string and you attempted to `decryptString`
+
+-}
 type DecryptError
     = NoKeysProvided
     | KeysNotSameLength
     | NotAnUtf8String
 
 
+{-| Allows deconstructing the Bytes secret from the given keys.
+-}
 decryptBytes : List Key -> Result DecryptError Bytes
 decryptBytes keys =
     case keys of
@@ -164,10 +203,11 @@ decryptBytes keys =
                     |> Ok
 
 
-{-| Decrypts the string.
+{-| Allows deconstructing the String secret from the given keys.
 
 Compared to `decryptBytes`, requires one extra 32bit integer at the beginning,
-saying how many UTF-8 bytes the string has.
+saying how many UTF-8 bytes the string has. This is given automatically during
+encryption with `encryptString`.
 
 -}
 decryptString : List Key -> Result DecryptError String
