@@ -11,6 +11,7 @@ import GF256.Polynomial as GFP
 import List.Extra as List
 import Random
 import Secret
+import Secret.Key exposing (Key)
 import Shrink
 import Test exposing (Test)
 
@@ -180,7 +181,7 @@ suite =
                         secret =
                             "Hello there!"
 
-                        allKeys : Result Secret.EncryptError (List Secret.Key)
+                        allKeys : Result Secret.EncryptError (List Key)
                         allKeys =
                             Secret.encryptString
                                 { seed = Random.initialSeed 0
@@ -195,7 +196,7 @@ suite =
 
                         Ok keys ->
                             let
-                                onlySomeKeys : List Secret.Key
+                                onlySomeKeys : List Key
                                 onlySomeKeys =
                                     List.drop 2 keys
 
@@ -213,7 +214,7 @@ suite =
                             [ 0, 10, 20, 30, 40, 50, 100, 200 ]
                                 |> Bytes.fromByteValues
 
-                        allKeys : Result Secret.EncryptError (List Secret.Key)
+                        allKeys : Result Secret.EncryptError (List Key)
                         allKeys =
                             Secret.encryptBytes
                                 { seed = Random.initialSeed 0
@@ -228,7 +229,7 @@ suite =
 
                         Ok keys ->
                             let
-                                onlySomeKeys : List Secret.Key
+                                onlySomeKeys : List Key
                                 onlySomeKeys =
                                     List.drop 2 keys
 
@@ -243,7 +244,7 @@ suite =
             , Test.fuzz2 partsAndMin nonemptyBytes "Any number of keys >= minPartsNeeded decrypts" <|
                 \{ parts, minPartsNeeded } secret ->
                     let
-                        allKeys : Result Secret.EncryptError (List Secret.Key)
+                        allKeys : Result Secret.EncryptError (List Key)
                         allKeys =
                             Secret.encryptBytes
                                 { seed = Random.initialSeed 0
@@ -258,7 +259,7 @@ suite =
 
                         Ok keys ->
                             let
-                                allKeysCombinations : List (List Secret.Key)
+                                allKeysCombinations : List (List Key)
                                 allKeysCombinations =
                                     keys
                                         |> List.subsequences
@@ -320,7 +321,7 @@ suite =
 bytesRoundtrip : Bytes -> Expectation
 bytesRoundtrip secret =
     let
-        allKeys : Result Secret.EncryptError (List Secret.Key)
+        allKeys : Result Secret.EncryptError (List Key)
         allKeys =
             Secret.encryptBytes
                 { seed = Random.initialSeed 0
@@ -346,7 +347,7 @@ bytesRoundtrip secret =
 stringRoundtrip : String -> Expectation
 stringRoundtrip secret =
     let
-        allKeys : Result Secret.EncryptError (List Secret.Key)
+        allKeys : Result Secret.EncryptError (List Key)
         allKeys =
             Secret.encryptString
                 { seed = Random.initialSeed 0

@@ -1,13 +1,12 @@
 module Secret exposing
     ( encryptBytes, encryptString, EncryptError(..)
-    , Key
     , decryptBytes, decryptString, DecryptError(..)
     )
 
-{-|
+{-| An implementation of Shamir's Secret Sharing: your secret is encrypted into
+N keys, of which only K are needed to reconstruct the original secret.
 
 @docs encryptBytes, encryptString, EncryptError
-@docs Key
 @docs decryptBytes, decryptString, DecryptError
 
 -}
@@ -20,29 +19,7 @@ import GF256 as GF
 import GF256.Polynomial as GFP exposing (Polynomial)
 import List.Extra as List
 import Random exposing (Generator)
-
-
-
--- KEY
-
-
-type Key
-    = Key ( Int, List Int )
-
-
-keyLength : Key -> Int
-keyLength (Key ( _, key )) =
-    List.length key
-
-
-pointAtIndex : Int -> Key -> ( Int, Int )
-pointAtIndex i (Key ( x, key )) =
-    ( x
-    , key
-        |> List.drop i
-        |> List.head
-        |> Maybe.withDefault -1
-    )
+import Secret.Key.Internal as Key exposing (Key(..))
 
 
 
@@ -170,9 +147,9 @@ decryptBytes keys =
 
                 firstKeyLength : Int
                 firstKeyLength =
-                    keyLength first
+                    Key.length first
             in
-            if List.any (\key -> keyLength key /= firstKeyLength) keys then
+            if List.any (\key -> Key.length key /= firstKeyLength) keys then
                 Err KeysNotSameLength
 
             else
@@ -180,7 +157,7 @@ decryptBytes keys =
                     |> List.map
                         (\i ->
                             keys
-                                |> List.map (pointAtIndex i)
+                                |> List.map (Key.pointAtIndex i)
                                 |> GF.interpolate
                         )
                     |> Bytes.fromByteValues
