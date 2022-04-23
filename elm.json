@@ -3,7 +3,7 @@
     "name": "Janiczek/elm-secret-sharing",
     "summary": "Shamir's Secret Sharing algorithm over GF(256)",
     "license": "Apache-2.0",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "exposed-modules": [
         "Secret",
         "Secret.Key"
