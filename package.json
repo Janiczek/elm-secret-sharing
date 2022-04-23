@@ -1,0 +1,12 @@
+{
+  "name": "elm-secret-sharing",
+  "repository": "git@github.com:Janiczek/elm-secret-sharing.git",
+  "author": "Martin Janiczek <martin@janiczek.cz>",
+  "license": "Apache-2.0",
+  "scripts": {
+    "postinstall": "elm-tooling install"
+  },
+  "devDependencies": {
+    "elm-tooling": "^1.8.0"
+  }
+}
