@@ -14,8 +14,8 @@ import Random exposing (Generator)
 In this library we'll only care about polynomials of single variable: x^3 + 2x + 1.
 Also, only polynomials over the GF(256) field.
 
-We represent them as a list of coefficients, starting at x^0. So the polynomial above
-would be represented by a list [1,2,0,1].
+We represent them as a list of coefficients, starting at the lowest one (x^0). So
+the polynomial above would be represented by a list [1,2,0,1].
 
 -}
 type alias Polynomial =
@@ -28,7 +28,8 @@ generator c =
         |> Random.map (ensureDegree >> List.reverse)
 
 
-{-| Take a degree in a reversed form and make sure the first coefficient is >0.
+{-| Take a polynomial in a reversed form (!) and make sure the first coefficient
+is greater than 0.
 -}
 ensureDegree : Polynomial -> Polynomial
 ensureDegree p =

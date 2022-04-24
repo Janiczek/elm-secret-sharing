@@ -13,7 +13,6 @@ module GF256 exposing
 
 import Array exposing (Array)
 import Bitwise
-import Random exposing (Generator)
 
 
 add : Int -> Int -> Int

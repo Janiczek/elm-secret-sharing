@@ -1,8 +1,6 @@
 module Tests exposing (suite)
 
 import Bytes exposing (Bytes)
-import Bytes.Decode as Decode
-import Bytes.Encode as Encode
 import Bytes.Extra as Bytes
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
@@ -187,6 +185,7 @@ suite =
                             , parts = 5
                             , minPartsNeeded = 3
                             }
+                        |> Result.map Tuple.first
                         |> Result.withDefault []
                         |> List.drop 2
                         |> Secret.decryptString
@@ -205,6 +204,7 @@ suite =
                             , parts = 5
                             , minPartsNeeded = 3
                             }
+                        |> Result.map Tuple.first
                         |> Result.withDefault []
                         |> List.drop 2
                         |> Secret.decryptBytes
@@ -224,6 +224,7 @@ suite =
                             , parts = 5
                             , minPartsNeeded = 3
                             }
+                        |> Result.map Tuple.first
                         |> Result.withDefault []
                         |> Secret.decryptString
                         |> Expect.equal (Ok secret)
@@ -238,6 +239,7 @@ suite =
                                     , parts = parts
                                     , minPartsNeeded = minPartsNeeded
                                     }
+                                |> Result.map Tuple.first
                                 |> Result.withDefault []
 
                         allKeysCombinations : List (List Key)
@@ -255,6 +257,21 @@ suite =
                                             |> expectBytes_ (Ok secret)
                                     )
                             )
+            , Test.fuzz (Fuzz.intRange 0 Random.maxInt) "Seed gets changed on success" <|
+                \seedInt ->
+                    let
+                        seed : Random.Seed
+                        seed =
+                            Random.initialSeed seedInt
+                    in
+                    "Hello world!"
+                        |> Secret.encryptString
+                            { seed = seed
+                            , parts = 5
+                            , minPartsNeeded = 3
+                            }
+                        |> Result.map Tuple.second
+                        |> Expect.notEqual (Ok seed)
             , Test.fuzz (Fuzz.intRange 0 1) "At least 2 parts must be required to decrypt" <|
                 \minPartsNeeded ->
                     Secret.encryptString
@@ -307,6 +324,7 @@ bytesRoundtrip secret =
             , parts = 5
             , minPartsNeeded = 3
             }
+        |> Result.map Tuple.first
         |> Result.withDefault []
         |> Secret.decryptBytes
         |> expectBytes_ (Ok secret)
@@ -320,6 +338,7 @@ stringRoundtrip secret =
             , parts = 5
             , minPartsNeeded = 3
             }
+        |> Result.map Tuple.first
         |> Result.withDefault []
         |> Secret.decryptString
         |> Expect.equal (Ok secret)

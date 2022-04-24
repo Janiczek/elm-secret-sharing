@@ -7,16 +7,7 @@ module Secret exposing
 your secret is encrypted into `N` keys, of which only `K` are needed to
 reconstruct the original secret.
 
-Port of [`simbo1905/shamir`](https://github.com/simbo1905/shamir).
-
-
-## Advanced usage:
-
-It's possible to have a tiered sharing: let's say you want to have admin keys and
-user keys; allowing either two admin keys or one admin key and three users to
-recover the secret.
-
-For more info check [this link](https://github.com/simbo1905/shamir#tiered-sharing-java).
+Check the README for tips on usage!
 
 
 # Encrypt
@@ -39,20 +30,6 @@ import GF256.Polynomial as GFP exposing (Polynomial)
 import List.Extra as List
 import Random exposing (Generator)
 import Secret.Key.Internal as Key exposing (Key(..))
-
-
-
--- POLYNOMIAL HELPERS
-
-
-secretPolynomial :
-    { degree : Int
-    , pointToHide : Int
-    }
-    -> Generator Polynomial
-secretPolynomial { degree, pointToHide } =
-    GFP.generator { degree = degree }
-        |> Random.map (GFP.setYIntercept pointToHide)
 
 
 
@@ -82,7 +59,7 @@ encryptBytes :
     , minPartsNeeded : Int
     }
     -> Bytes
-    -> Result EncryptError (List Key)
+    -> Result EncryptError ( List Key, Random.Seed )
 encryptBytes c secret =
     if Bytes.width secret == 0 then
         Err NoSecret
@@ -100,7 +77,7 @@ encryptBytes c secret =
         secret
             |> Bytes.toByteValues
             |> List.foldl
-                (\secretByte ( accSeed, accValues ) ->
+                (\secretByte ( accValues, accSeed ) ->
                     let
                         ( polynomial, newSeed ) =
                             Random.step
@@ -111,19 +88,20 @@ encryptBytes c secret =
                                 )
                                 accSeed
                     in
-                    ( newSeed
-                    , (List.range 1 c.parts
+                    ( (List.range 1 c.parts
                         -- starting at x=1 is important
                         |> List.map (\x -> GFP.evalAt x polynomial)
                       )
                         :: accValues
+                    , newSeed
                     )
                 )
-                ( c.seed, [] )
-            |> Tuple.second
-            |> List.transpose
-            |> List.map List.reverse
-            |> List.indexedMap (\i key -> Key ( i + 1, key ))
+                ( [], c.seed )
+            |> Tuple.mapFirst
+                (List.transpose
+                    >> List.map List.reverse
+                    >> List.indexedMap (\i key -> Key ( i + 1, key ))
+                )
             |> Ok
 
 
@@ -140,7 +118,7 @@ encryptString :
     , minPartsNeeded : Int
     }
     -> String
-    -> Result EncryptError (List Key)
+    -> Result EncryptError ( List Key, Random.Seed )
 encryptString c secret =
     encryptBytes c (Encode.encode (sizedStringEncoder secret))
 
@@ -178,12 +156,8 @@ decryptBytes keys =
         [] ->
             Err NoKeysProvided
 
-        first :: rest ->
+        first :: _ ->
             let
-                keyCount : Int
-                keyCount =
-                    List.length keys
-
                 firstKeyLength : Int
                 firstKeyLength =
                     Key.length first
@@ -227,3 +201,17 @@ sizedStringDecoder : Decoder String
 sizedStringDecoder =
     Decode.unsignedInt32 BE
         |> Decode.andThen Decode.string
+
+
+
+-- POLYNOMIAL HELPERS
+
+
+secretPolynomial :
+    { degree : Int
+    , pointToHide : Int
+    }
+    -> Generator Polynomial
+secretPolynomial { degree, pointToHide } =
+    GFP.generator { degree = degree }
+        |> Random.map (GFP.setYIntercept pointToHide)
