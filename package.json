@@ -4,7 +4,11 @@
   "author": "Martin Janiczek <martin@janiczek.cz>",
   "license": "Apache-2.0",
   "scripts": {
-    "postinstall": "elm-tooling install"
+    "postinstall": "elm-tooling install",
+    "review": "elm-review",
+    "review:watch": "elm-review --watch",
+    "test": "elm-test-rs",
+    "test:watch": "elm-test-rs --watch"
   },
   "devDependencies": {
     "elm-tooling": "^1.8.0"
