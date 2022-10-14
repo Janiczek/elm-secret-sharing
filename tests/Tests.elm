@@ -10,7 +10,6 @@ import List.Extra as List
 import Random
 import Secret
 import Secret.Key exposing (Key)
-import Shrink
 import Test exposing (Test)
 
 
@@ -45,27 +44,24 @@ nonemptyBytes =
 
 partsAndMin : Fuzzer { parts : Int, minPartsNeeded : Int }
 partsAndMin =
-    Fuzz.custom
-        {- The max number of parts allowed by the library is 255.
+    {- The max number of parts allowed by the library is 255.
 
-           There would be combinatorial explosion in some tests later when
-           generating all permitted key combinations, so we're limiting the parts
-           in this fuzzer to 10. That gives at max 2^10 = 1024 combinations to
-           try.
-        -}
-        (Random.int 2 10
-            |> Random.andThen
-                (\parts ->
-                    Random.int 2 parts
-                        |> Random.map
-                            (\minPartsNeeded ->
-                                { parts = parts
-                                , minPartsNeeded = minPartsNeeded
-                                }
-                            )
-                )
-        )
-        Shrink.noShrink
+       There would be combinatorial explosion in some tests later when
+       generating all permitted key combinations, so we're limiting the parts
+       in this fuzzer to 10. That gives at max 2^10 = 1024 combinations to
+       try.
+    -}
+    Fuzz.intRange 2 10
+        |> Fuzz.andThen
+            (\parts ->
+                Fuzz.intRange 2 parts
+                    |> Fuzz.map
+                        (\minPartsNeeded ->
+                            { parts = parts
+                            , minPartsNeeded = minPartsNeeded
+                            }
+                        )
+            )
 
 
 suite : Test
@@ -228,13 +224,17 @@ suite =
                         |> Result.withDefault []
                         |> Secret.decryptString
                         |> Expect.equal (Ok secret)
-            , Test.fuzz2 partsAndMin nonemptyBytes "Any number of keys >= minPartsNeeded decrypts" <|
-                \{ parts, minPartsNeeded } secret ->
+            , Test.fuzz partsAndMin "Any number of keys >= minPartsNeeded decrypts" <|
+                \{ parts, minPartsNeeded } ->
                     let
+                        secret : String
+                        secret =
+                            "hello"
+
                         allKeys : List Key
                         allKeys =
                             secret
-                                |> Secret.encryptBytes
+                                |> Secret.encryptString
                                     { seed = Random.initialSeed 0
                                     , parts = parts
                                     , minPartsNeeded = minPartsNeeded
@@ -253,8 +253,8 @@ suite =
                             (allKeysCombinations
                                 |> List.map
                                     (\keysCombination _ ->
-                                        Secret.decryptBytes keysCombination
-                                            |> expectBytes_ (Ok secret)
+                                        Secret.decryptString keysCombination
+                                            |> Expect.equal (Ok secret)
                                     )
                             )
             , Test.fuzz (Fuzz.intRange 0 Random.maxInt) "Seed gets changed on success" <|
