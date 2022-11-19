@@ -47,7 +47,10 @@ setYIntercept intercept p =
         _ :: rest ->
             intercept :: rest
 
-        _ ->
+        [] ->
+            {- This is unreachable due to this module not being exposed and
+               Secret enforcing 2+ parts with the error TooFewPartsNeeded.
+            -}
             p
 
 

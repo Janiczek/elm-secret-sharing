@@ -312,8 +312,28 @@ suite =
                 \() ->
                     Secret.decryptString []
                         |> Expect.equal (Err Secret.NoKeysProvided)
+            , Test.test "Keys must be the same length" <|
+                \() ->
+                    Secret.decryptString
+                        [ Secret.Key.fromList ( 1, [] )
+                        , Secret.Key.fromList ( 2, [ 1 ] )
+                        ]
+                        |> Expect.equal (Err Secret.KeysNotSameLength)
+            ]
+        , Test.describe "Secret.Key"
+            [ Test.fuzz keyPrimitiveFuzzer "roundtrip" <|
+                \key ->
+                    key
+                        |> Secret.Key.fromList
+                        |> Secret.Key.toList
+                        |> Expect.equal key
             ]
         ]
+
+
+keyPrimitiveFuzzer : Fuzzer ( Int, List Int )
+keyPrimitiveFuzzer =
+    Fuzz.pair Fuzz.int (Fuzz.list Fuzz.int)
 
 
 bytesRoundtrip : Bytes -> Expectation
